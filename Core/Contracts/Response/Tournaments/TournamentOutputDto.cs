@@ -21,6 +21,10 @@ namespace Core.contracts.Response
         public int PlayingDaysId { get; set; }
         public int TournamentAccessId { get; set; }
         public int TournamentTypeId { get; set; }
+        public int EnrolledTeams { get; set; }
+        public bool CanEdit { get; set; }
+        public bool CanEditMatches { get; set; }
+        public bool EliminationPhaseStarted { get; set; }
         public List<TournamentMatchOutputDto> TournamentMatches { get; set; } = new List<TournamentMatchOutputDto>();
         public List<TournamentParticipantOutputDto> TournamentParticipants { get; set; } = new List<TournamentParticipantOutputDto>();
     }

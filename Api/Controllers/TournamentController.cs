@@ -12,9 +12,8 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Core.Contracts.Response.Tournaments;
 using System.Linq;
-using System;
-using Core.Contracts.Request.Tournaments;
 using Core.contracts.response;
+using Core.Contracts.Request.Tournaments;
 
 namespace Api.controllers
 {
@@ -59,14 +58,14 @@ namespace Api.controllers
         [HttpGet("{tournamentId}")]
         public async Task<ActionResult<List<TournamentOutputDto>>> GetTournamentById(int tournamentId)
         {
-            var tournament = await TournamentService.GetTournamentById(tournamentId);
+            var tournament = await TournamentService.GetTournamentById(tournamentId, userId);
 
             if (tournament == null)
             {
                 return BadRequest();
             }
 
-            return Ok(Mapper.Map<TournamentOutputDto>(tournament));
+            return Ok(tournament);
         }
 
         [HttpGet("{tournamentId}/participants")]
@@ -86,17 +85,17 @@ namespace Api.controllers
         }
 
         [HttpGet("user-tournaments")]
-        public async Task<ActionResult<List<Tournament>>> GetUserTournaments()
+        public async Task<ActionResult<List<TournamentOutputDto>>> GetUserTournaments()
         {
             var tournamentsList = await TournamentService.GetUserTournaments(userId, role);
 
-            return Ok(tournamentsList);
+            return Ok(Mapper.Map<List<TournamentOutputDto>>(tournamentsList));
         }
 
         [HttpPut("{tournamentId}/join-tournament")]
-        public async Task<ActionResult<List<Tournament>>> GetUserTournaments([FromBody] JoinTournamentDto joinTournamentDto, int tournamentId)
+        public async Task<ActionResult<List<Tournament>>> GetUserTournaments(int tournamentId)
         {
-            var errorsList = await TournamentService.JoinTournament(tournamentId, joinTournamentDto.TeamId);
+            var errorsList = await TournamentService.JoinTournament(tournamentId, userId);
 
             if (errorsList.Any())
             {
@@ -115,6 +114,35 @@ namespace Api.controllers
             var userIsAllowed = await TournamentService.GetUserIsAllowedToParticipate(tournamentId, userId);
 
             return Ok(userIsAllowed);
+        }
+
+        [HttpGet("{tournamentId}/can-proceed-to-eliminations")]
+        public async Task<ActionResult<bool>> GetCanProceedToEliminations(int tournamentId)
+        {
+            var canProceed = await TournamentService.GetCanProceedToEliminations(tournamentId, userId);
+
+            return Ok(canProceed);
+        }
+
+        [HttpPost("{tournamentId}/proceed-to-eliminations")]
+        public async Task<ActionResult<ErrorResponse>> ProceedToEliminations(int tournamentId)
+        {
+            var response = await TournamentService.ProceedToEliminations(tournamentId, userId);
+
+            if (response.Errors.Any())
+            {
+                return BadRequest(response);
+            }
+
+            return Ok();
+        }
+
+        [HttpPut("{tournamentId}/close")]
+        public async Task<ActionResult<ErrorResponse>> CloseTournament(int tournamentId)
+        {
+            await TournamentService.CloseTournament(tournamentId, userId);
+
+            return Ok();
         }
     }
 }

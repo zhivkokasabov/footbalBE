@@ -1,6 +1,6 @@
 ﻿namespace Core.Enums
 {
-    public enum TournamentType
+    public enum TournamentTypes
     {
         Elimination = 1,
         Classic,

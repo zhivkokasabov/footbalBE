@@ -13,6 +13,8 @@ namespace Core.Models
         public DateTime StartTime { get; set; }
         public int Round { get; set; }
         public int SequenceId { get; set; }
+        public string Result { get; set; }
+        public bool IsEliminationMatch { get; set; }
         public List<TournamentMatchTeam> TournamentMatchTeams { get; set; } = new List<TournamentMatchTeam>();
     }
 }

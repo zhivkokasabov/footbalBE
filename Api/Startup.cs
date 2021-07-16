@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Services;
+using Services.TournamentMatches;
 using System;
 using System.Text;
 
@@ -36,7 +38,7 @@ namespace Api
             services.AddControllers().AddFluentValidation(opt =>
             {
                 opt.RegisterValidatorsFromAssemblyContaining<Startup>();
-            }); ;
+            });
             AddAutoMapper(services);
             AddServices(services);
             AddIdentity(services);
@@ -115,6 +117,7 @@ namespace Api
             services.AddScoped<ITournamentTypesService, TournamentTypesService>();
             services.AddScoped<ITournamentAccessesService, TournamentAccessesService>();
             services.AddScoped<ITeamsService, TeamsService>();
+            services.AddScoped<ITournamentMatchesService, TournamentMatchesService>();
         }
 
         private void AddCors(IServiceCollection services)

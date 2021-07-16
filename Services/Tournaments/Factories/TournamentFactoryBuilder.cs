@@ -10,13 +10,13 @@ namespace Services.Tournaments.Factories
         {
             switch (tournament.TournamentTypeId)
             {
-                case (int)Core.Enums.TournamentType.Elimination:
+                case (int)Core.Enums.TournamentTypes.Elimination:
                     instance = new EliminationTournament(tournament);
                     break;
-                case (int)Core.Enums.TournamentType.Classic:
+                case (int)Core.Enums.TournamentTypes.Classic:
                     instance = new ClassicTournament(tournament);
                     break;
-                case (int)Core.Enums.TournamentType.RoundRobin:
+                case (int)Core.Enums.TournamentTypes.RoundRobin:
                     instance = new RoundRobinTournament(tournament);
                     break;
                 default:

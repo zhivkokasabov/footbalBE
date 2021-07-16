@@ -23,6 +23,26 @@ namespace Datum.Repositories
         {
             return await DbContext.TournamentParticipants
                     .Where(x => x.TournamentId == tournamentId)
+                    .Select(x => new TournamentParticipant {
+                        Group = x.Group,
+                        SequenceId = x.SequenceId,
+                        TeamId = x.TeamId,
+                        TournamentId = x.TournamentId,
+                        ConceivedGoals = x.ConceivedGoals,
+                        Draws = x.Draws,
+                        GoalDifference = x.GoalDifference,
+                        Goals = x.Goals,
+                        Loses = x.Loses,
+                        Played = x.Played,
+                        Points = x.Points,
+                        Wins = x.Wins,
+                        Team = x.TeamId.HasValue
+                            ? new Team
+                                {
+                                    Name = x.Team.Name
+                                }
+                            : null
+                    })
                     .ToListAsync();
         }
     }

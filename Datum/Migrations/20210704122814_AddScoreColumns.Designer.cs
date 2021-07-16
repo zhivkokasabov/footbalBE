@@ -4,14 +4,16 @@ using Datum;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Datum.Migrations
 {
     [DbContext(typeof(FootballManagerDbContext))]
-    partial class FootballManagerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20210704122814_AddScoreColumns")]
+    partial class AddScoreColumns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -123,9 +125,6 @@ namespace Datum.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<bool>("EliminationPhaseStarted")
-                        .HasColumnType("bit");
-
                     b.Property<int>("GroupSize")
                         .HasColumnType("int");
 
@@ -211,9 +210,6 @@ namespace Datum.Migrations
 
                     b.Property<int>("HomeTeamSequenceId")
                         .HasColumnType("int");
-
-                    b.Property<bool>("IsEliminationMatch")
-                        .HasColumnType("bit");
 
                     b.Property<string>("Result")
                         .HasMaxLength(8)

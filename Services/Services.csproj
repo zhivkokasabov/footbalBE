@@ -13,4 +13,8 @@
     <ProjectReference Include="..\Datum\Datum.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="TournamentMatches\NewFolder\" />
+  </ItemGroup>
+
 </Project>

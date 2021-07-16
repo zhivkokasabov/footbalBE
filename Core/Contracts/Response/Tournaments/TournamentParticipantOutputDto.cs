@@ -1,10 +1,5 @@
-﻿using Core.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿using Core.Contracts.Response.Teams;
+using Core.Models;
 namespace Core.Contracts.Response.Tournaments
 {
     public class TournamentParticipantOutputDto
@@ -13,6 +8,14 @@ namespace Core.Contracts.Response.Tournaments
         public int SequenceId { get; set; }
         public char? Group { get; set; }
         public int? TeamId { get; set; }
-        public Team Team { get; set; }
+        public int? Played { get; set; }
+        public int? Wins { get; set; }
+        public int? Loses { get; set; }
+        public int? Draws { get; set; }
+        public int? Points { get; set; }
+        public int Goals { get; set; } = 0;
+        public int ConceivedGoals { get; set; } = 0;
+        public int GoalDifference { get; set; } = 0;
+        public TeamOutputDto Team { get; set; }
     }
 }

@@ -56,9 +56,19 @@ namespace Services
             userModel.PasswordHash = UserManager.PasswordHasher.HashPassword(userModel, user.Password);
             
             var result = await UserManager.CreateAsync(userModel, user.Password);
-            
+
             await UserManager.AddToRolesAsync(userModel, user.Roles.Select(x => x.Name));
- 
+            
+            var roles = await UserManager.GetRolesAsync(userModel);
+
+            userModel.UserRoles = roles.Select(role => new UserRole
+            {
+                Role = new Role
+                {
+                    Name = role
+                }
+            }).ToList();
+
             if (!result.Succeeded)
             {
                 var errors = new ErrorResponse();
@@ -88,7 +98,6 @@ namespace Services
         {
             var foundUser = await UserManager.FindByEmailAsync(user.Email);
             var passwordIsCorrect = await UserManager.CheckPasswordAsync(foundUser, user.Password);
-            
 
             if (passwordIsCorrect)
             {

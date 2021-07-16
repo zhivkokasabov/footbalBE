@@ -1,4 +1,6 @@
-﻿using Core.Models;
+﻿using Core.Enums;
+using Core.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -6,7 +8,7 @@ namespace Services.Tournaments.Factories
 {
     public class ClassicTournament : ITournament
     {
-        private List<char> groups = new List<char> { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J' };
+        private List<char> groups = new() { '-', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J' };
         private Tournament Tournament;
         public ClassicTournament(Tournament tournament)
         {
@@ -23,7 +25,6 @@ namespace Services.Tournaments.Factories
                 .GroupBy(x => x.Group);
             var matchesPerRound = TournamentModel.PlayingFields;
             var count = 1;
-            var round = 1;
 
             foreach (var group in groups)
             {
@@ -35,39 +36,84 @@ namespace Services.Tournaments.Factories
                         {
                             HomeTeamSequenceId = group.ElementAt(ii).SequenceId,
                             AwayTeamSequenceId = group.ElementAt(jj).SequenceId,
-                            Round = round,
+                            Round = 1,
                             SequenceId = count,
                             StartTime = TournamentModel.StartDate
                         });
-
-                        if (count % matchesPerRound == 0)
-                        {
-                            round++;
-                        }
 
                         count++;
                     }
                 }
             }
+
+            // in case a group is not full remove matches created for non existent teams
+            TournamentModel.TournamentMatches = TournamentModel.TournamentMatches.Where(x => x.HomeTeamSequenceId != 0).ToList();
+
+            CreateEliminationMatches(count);
         }
 
         public void CreateParticipants()
         {
             TournamentModel.TournamentParticipants = new List<TournamentParticipant>();
 
-            int numberOfGroups = TournamentModel.TeamsCount / TournamentModel.GroupSize;
+            var numberOfGroups = Math.Ceiling(TournamentModel.TeamsCount / 1.00 / TournamentModel.GroupSize);
+            var count = 1;
+            var group = 1;
 
-            for (int ii = 0; ii < numberOfGroups; ii++)
+            while (count <= TournamentModel.TeamsCount)
             {
-                for (int jj = 1; jj <= TournamentModel.GroupSize; jj++)
+                TournamentModel.TournamentParticipants.Add(new TournamentParticipant
                 {
-                    TournamentModel.TournamentParticipants.Add(new TournamentParticipant
-                    {
-                        SequenceId = ii * TournamentModel.GroupSize + jj,
-                        Group = groups[ii]
-                    });
+                    SequenceId = count,
+                    Group = groups[group]
+                });
+
+                if (group == numberOfGroups)
+                {
+                    group = 1;
                 }
+                else
+                {
+                    group++;
+                }
+
+                count++;
             }
+        }
+
+        private void CreateEliminationMatches(int sequenceId)
+        {
+            var numberOfGroups = Math.Ceiling(TournamentModel.TeamsCount / 1.00 / TournamentModel.GroupSize);
+            var nextPowOfTwo = NextPowOfTwo((int)numberOfGroups * TournamentModel.TeamsAdvancingAfterGroups);
+            var tournamentBuilder = new TournamentFactoryBuilder(new Tournament
+            {
+                TournamentTypeId = (int)TournamentTypes.Elimination,
+                TeamsCount = nextPowOfTwo
+            });
+
+            tournamentBuilder.CreateTournamentMatches();
+            tournamentBuilder.TournamentModel.TournamentMatches.ForEach(x =>
+            {
+                x.HomeTeamSequenceId = 0;
+                x.AwayTeamSequenceId = 0;
+                x.SequenceId = x.SequenceId + sequenceId;
+                x.IsEliminationMatch = true;
+                x.Round = x.Round + 1;
+            });
+
+            TournamentModel.TournamentMatches.AddRange(tournamentBuilder.TournamentModel.TournamentMatches);
+        }
+
+        private int NextPowOfTwo(int x)
+        {
+            var result = 2;
+
+            while (result < x)
+            {
+                result *= 2;
+            }
+
+            return result;
         }
     }
 }

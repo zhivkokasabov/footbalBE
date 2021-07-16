@@ -1,11 +1,10 @@
-﻿using Api.Controllers;
-using Core.contracts.Response;
+﻿using Core.contracts.Request;
 using Core.Enums;
 using FluentValidation;
 
 namespace Api.validators
 {
-    public class TournamentValidator: AbstractValidator<TournamentOutputDto>
+    public class TournamentValidator: AbstractValidator<TournamentDto>
     {
         public TournamentValidator()
         {
@@ -23,23 +22,25 @@ namespace Api.validators
 
             RuleFor(x => x.TeamsCount)
                 .NotNull().When(x =>
-                    x.TournamentTypeId == (int)TournamentType.Classic);
+                    x.TournamentTypeId == (int)TournamentTypes.Classic);
 
             RuleFor(x => x.TeamsCount)
                 .Must(x => (x != 0) && ((x & (x - 1)) == 0)).When(x =>
-                    x.TournamentTypeId == (int)TournamentType.Elimination)
+                    x.TournamentTypeId == (int)TournamentTypes.Elimination)
                 .WithMessage("Teams Count must be a power of 2");
 
             RuleFor(x => x.TeamsAdvancingAfterGroups)
-                .NotNull().When(x =>
-                    x.TournamentTypeId == (int)TournamentType.Classic)
                 .LessThan(x => x.TeamsCount)
-                .GreaterThanOrEqualTo(1);
+                .LessThan(x => x.GroupSize)
+                .GreaterThanOrEqualTo(1)
+                .NotNull().When(x =>
+                    x.TournamentTypeId == (int)TournamentTypes.Classic);
 
             RuleFor(x => x.GroupSize)
                 .NotNull().When(x =>
-                    x.TournamentTypeId == (int)TournamentType.Classic)
-                .GreaterThanOrEqualTo(2);
+                    x.TournamentTypeId == (int)TournamentTypes.Classic)
+                .GreaterThanOrEqualTo(2)
+                .LessThanOrEqualTo(12);
 
             RuleFor(x => x.StartDate)
                 .NotNull();
@@ -48,7 +49,8 @@ namespace Api.validators
                 .MaximumLength(2000);
 
             RuleFor(x => x.PlayingFields)
-                .NotNull();
+                .NotNull()
+                .GreaterThanOrEqualTo(1);
 
             RuleFor(x => x.MatchLength)
                 .NotNull();

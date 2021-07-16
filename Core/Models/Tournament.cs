@@ -20,6 +20,8 @@ namespace Core.Models
         public TimeSpan MatchLength { get; set; }
         public TimeSpan HalfTimeLength { get; set; }
         public int GroupSize { get; set; }
+        public bool EliminationPhaseStarted { get; set; }
+        public bool HasFinished { get; set; }
         public PlayingDays PlayingDays { get; set; }
         public int PlayingDaysId { get; set; }
         public TournamentAccess TournamentAccess { get; set; }

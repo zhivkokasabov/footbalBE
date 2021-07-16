@@ -27,6 +27,16 @@ namespace Datum.Repositories
             await Context.Set<TEntity>().AddRangeAsync(entities);
         }
 
+        public void Update(TEntity entity)
+        {
+            Context.Set<TEntity>().Update(entity);
+        }
+
+        public virtual void Update(List<TEntity> entities)
+        {
+            Context.Set<TEntity>().UpdateRange(entities);
+        }
+
         public IEnumerable<TEntity> Find(Expression<Func<TEntity, bool>> predicate)
         {
             return Context.Set<TEntity>().Where(predicate);
@@ -42,9 +52,9 @@ namespace Datum.Repositories
             return Context.Set<TEntity>().FindAsync(id).AsTask();
         }
 
-        public Task<TEntity> SingleOrDefaultAsync(Expression<Func<TEntity, bool>> predicate)
+        public Task<TEntity> FirstOrDefaultAsync(Expression<Func<TEntity, bool>> predicate)
         {
-            return Context.Set<TEntity>().SingleOrDefaultAsync(predicate);
+            return Context.Set<TEntity>().FirstOrDefaultAsync(predicate);
         }
 
         protected FootballManagerDbContext DbContext

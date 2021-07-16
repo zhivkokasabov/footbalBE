@@ -22,7 +22,7 @@ namespace Services.Tournaments.Factories
             {
                 TournamentModel.TournamentParticipants.Add(new TournamentParticipant
                 {
-                    SequenceId = ii,
+                    SequenceId = ii + 1,
                 });
             }
         }
@@ -41,11 +41,12 @@ namespace Services.Tournaments.Factories
                 {
                     TournamentModel.TournamentMatches.Add(new TournamentMatch
                     {
-                        HomeTeamSequenceId = ii * 2 - 1,
-                        AwayTeamSequenceId = ii * 2,
+                        HomeTeamSequenceId = round == 1 ? ii * 2 - 1 : 0,
+                        AwayTeamSequenceId = round == 1 ? ii * 2 : 0,
                         Round = round,
                         SequenceId = sequenceId,
-                        StartTime = new DateTime()
+                        StartTime = new DateTime(),
+                        IsEliminationMatch = true
                     });
 
                     sequenceId += 1;

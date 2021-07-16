@@ -8,6 +8,9 @@ namespace Datum.Configurations
     {
         public void Configure(EntityTypeBuilder<TournamentMatch> builder)
         {
+            builder.Property(tm => tm.Result)
+                .HasMaxLength(8);
+
             builder.HasOne(tm => tm.Tournament)
                 .WithMany(t => t.TournamentMatches)
                 .HasForeignKey(t => t.TournamentId)

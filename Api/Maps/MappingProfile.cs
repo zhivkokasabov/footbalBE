@@ -30,7 +30,10 @@ public class MappingProfile : Profile
                 opt => opt.MapFrom(src => src.HalfTimeLength.Minutes))
             .ForMember(
                 x => x.MatchLength,
-                opt => opt.MapFrom(src => src.MatchLength.Minutes));
+                opt => opt.MapFrom(src => src.MatchLength.Minutes))
+            .ForMember(
+                x => x.EnrolledTeams,
+                opt => opt.MapFrom(src => src.TournamentParticipants.Count()));
 
         CreateMap<TournamentParticipant, TournamentParticipantOutputDto>();
         CreateMap<TournamentMatch, TournamentMatchOutputDto>();

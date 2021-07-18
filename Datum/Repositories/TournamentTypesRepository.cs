@@ -19,10 +19,5 @@ namespace Datum.Repositories
         {
             return await DbContext.TournamentTypes.ToListAsync();
         }
-
-        private FootballManagerDbContext DbContext
-        {
-            get { return Context as FootballManagerDbContext; }
-        }
     }
 }

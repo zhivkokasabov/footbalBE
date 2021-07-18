@@ -3,6 +3,7 @@ using Core.contracts.response;
 using Core.Contracts.Request;
 using Core.Contracts.Response;
 using Core.Contracts.Response.Users;
+using Core.InternalObjects;
 using Core.Models;
 using Core.Repositories;
 using Core.Services;
@@ -167,6 +168,40 @@ namespace Services
             var mapped = Mapper.Map<UserOutputDto>(user);
 
             return mapped;
+        }
+
+        public async Task<UpdateProfileModel> UpdateUser(UserDto userDto)
+        {
+            var response = new UpdateProfileModel();
+            var user = await UserManager.FindByEmailAsync(userDto.Email);
+            var passwordIsCorrect = await UserManager.CheckPasswordAsync(user, userDto.Password);
+
+            if (!passwordIsCorrect)
+            {
+                response.Errors.Add(new ErrorModel { Error = "Wrong password provided" });
+                
+                return response;
+            }
+
+            user.FirstName = userDto.FirstName;
+            user.LastName = userDto.LastName;
+            user.Nickname = userDto.Nickname;
+            user.UserPositions = userDto.Positions.Select(x => new UserPosition
+            {
+                Active = true,
+                PlayerPositionId = x.Id
+            }).ToList();
+
+            var positions = await UnitOfWork.Users.GetUserPositionsAsync(user.Id);
+
+            positions.ForEach(x => x.Active = false);
+
+            await UserManager.UpdateAsync(user);
+            await UnitOfWork.CommitAsync();
+
+            response.User = user;
+
+            return response;
         }
     }
 }

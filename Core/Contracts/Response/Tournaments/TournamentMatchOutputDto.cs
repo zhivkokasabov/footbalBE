@@ -15,6 +15,7 @@ namespace Core.Contracts.Response.Tournaments
         public int TournamentId { get; set; }
         public string Result { get; set; }
         public bool IsEliminationMatch { get; set; }
+        public bool CanEdit { get; set; }
         public List<TournamentMatchTeamOutputDto> TournamentMatchTeams { get; set; } = new List<TournamentMatchTeamOutputDto>();
     }
 }

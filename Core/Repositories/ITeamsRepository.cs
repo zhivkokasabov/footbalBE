@@ -12,6 +12,7 @@ namespace Core.Repositories
     {
         Task<Team> GetUserTeam(int userId);
         Task<List<TournamentMatch>> GetTeamMatches(int teamId);
+        Task<List<TournamentPlacement>> GetTeamPlacements(int teamId);
         Task<Team> FindAsync(string entryKey);
         Task<Team> GetTeam(int teamId);
     }

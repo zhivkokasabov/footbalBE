@@ -1,14 +1,17 @@
 ﻿using AutoMapper;
+using Core;
 using Core.contracts.response;
 using Core.contracts.Response;
 using Core.Contracts.Response.Tournaments;
 using Core.Enums;
+using Core.InternalObjects;
 using Core.Models;
 using Core.Repositories;
 using Core.Services;
 using Microsoft.EntityFrameworkCore;
 using Services.Helpers;
 using Services.Tournaments.Factories;
+using Services.Tournaments.Factories.CloseTournament;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -66,8 +69,11 @@ namespace Services
 
             var tournamentOutput = Mapper.Map<TournamentOutputDto>(tournament);
 
-            tournamentOutput.CanEdit = tournament.UserId == userId;
-            tournamentOutput.CanEditMatches = tournament.UserId == userId;
+            if (!tournament.HasFinished)
+            {
+                tournamentOutput.CanEdit = tournament.UserId == userId;
+                tournamentOutput.CanEditMatches = tournament.UserId == userId;
+            }
 
             return tournamentOutput;
         }
@@ -76,14 +82,20 @@ namespace Services
         {
             var participants = await UnitOfWork.TournamentParticipants.GetTournamentParticipants(tournamentId);
 
-            return OrderParticipants(participants);
+            return TournamentParticipantsHelper.OrderParticipants(participants);
         }
 
-        public async Task<IEnumerable<IGrouping<int, TournamentMatchOutputDto>>> GetTournamentMatches(int tournamentId)
+        public async Task<IEnumerable<IGrouping<int, TournamentMatchOutputDto>>> GetTournamentMatches(int tournamentId, int userId)
         {
+            var tournament = await UnitOfWork.Tournaments.GetByIdAsync(tournamentId);
             var matches = await UnitOfWork.TournamentMatches.GetTournamentMatches(tournamentId);
             var matchesOutput = Mapper.Map<List<TournamentMatchOutputDto>>(matches);
 
+            if (tournament.HasFinished != true)
+            {
+                matchesOutput = TournamentMatchHelper.UpdateMatchesCanEdit(matchesOutput, tournament);
+            }
+            
             return TournamentMatchHelper.GroupMatches(matchesOutput);
         }
 
@@ -93,9 +105,13 @@ namespace Services
             var team = await UnitOfWork.Teams.GetUserTeam(userId);
             var tournament = await UnitOfWork.Tournaments.GetTournamentById(tournamentId);
 
+            if (tournament.HasFinished) {
+                errors.Add(new ErrorModel { Error = ErrorMessages.TournamentHasFinished });
+            }
+
             if (team == null)
             {
-                errors.Add(new ErrorModel { Error = "Team does not exists" });
+                errors.Add(new ErrorModel { Error = ErrorMessages.TeamDoesNotExist });
                 return errors;
             }
 
@@ -105,7 +121,7 @@ namespace Services
 
                 if (participant == null)
                 {
-                    errors.Add(new ErrorModel { Error = "No available slots in the tournament" });
+                    errors.Add(new ErrorModel { Error = ErrorMessages.NoAvailableSlots });
                     return errors;
                 }
 
@@ -127,7 +143,7 @@ namespace Services
             }
             else
             {
-                errors.Add(new ErrorModel { Error = "Cannot join non public tournament" });
+                errors.Add(new ErrorModel { Error = ErrorMessages.RestrictedAccess });
                 return errors;
             }
 
@@ -137,18 +153,26 @@ namespace Services
         public async Task<bool> GetUserIsAllowedToParticipate(int tournamentId, int userId)
         {
             var user = await UnitOfWork.Users.GetUserAsync(userId);
-            var tournamentParticipants = await UnitOfWork.TournamentParticipants.GetTournamentParticipants(tournamentId);
+            var tournament = (await UnitOfWork.Tournaments.GetTournamentQueryable(tournamentId)
+                .Where(x => x.Active)
+                .Select(x => new Tournament
+                {
+                    TournamentParticipants = x.TournamentParticipants.ToList(),
+                    HasFinished = x.HasFinished
+                }).ToListAsync()).First();
+                
+            var tournamentParticipants = tournament.TournamentParticipants;
             var tournamentParticipant = tournamentParticipants.Find(x => x.TeamId == user.TeamId);
             var availableSlots = tournamentParticipants.Find(x => x.TeamId == null);
 
-            return user.IsTeamCaptain && tournamentParticipant == null && availableSlots != null;
+            return user.IsTeamCaptain && !tournament.HasFinished && tournamentParticipant == null && availableSlots != null;
         }
 
         public async Task<bool> GetCanProceedToEliminations(int tournamentId, int userId)
         {
             var tournament = await UnitOfWork.Tournaments.GetByIdAsync(tournamentId);
 
-            if (tournament.UserId != userId)
+            if (tournament.HasFinished || tournament.UserId != userId || tournament.EliminationPhaseStarted)
             {
                 return false;
             }
@@ -164,64 +188,36 @@ namespace Services
             return true;
         }
 
-        public async Task<ErrorResponse> ProceedToEliminations(int tournamentId, int userId)
+        public async Task<ProceedToEliminationsModel> ProceedToEliminations(int tournamentId, int userId)
         {
-            var response = new ErrorResponse();
+            var response = new ProceedToEliminationsModel();
             var tournament = await UnitOfWork.Tournaments.GetByIdAsync(tournamentId);
 
-            if (tournament.TournamentTypeId != (int)TournamentTypes.Classic)
+            if (tournament.EliminationPhaseStarted)
             {
                 response.Errors.Add(new ErrorModel
                 {
-                    Error = "Only classic tournament can proceed to eliminations"
-                });
-            }
-
-            if (tournament.UserId != userId)
-            {
-                response.Errors.Add(new ErrorModel
-                {
-                    Error = "Only tournament organizer can proceed to eliminations"
-                });
-            }
-
-            var participants = await UnitOfWork.TournamentParticipants.GetTournamentParticipants(tournamentId);
-            var eliminationsParticipants = ProceedToEliminations(participants, tournament);
-            var eliminationMatches = await UnitOfWork.TournamentMatches.GetEliminationTournamentMatches(tournamentId);
-
-            var tournamentMatches = UpdateMatchesParticipants(eliminationsParticipants, eliminationMatches);
-
-            tournament.EliminationPhaseStarted = true;
-            
-            UnitOfWork.Tournaments.Update(tournament);
-            UnitOfWork.TournamentMatches.Update(tournamentMatches);
-            await UnitOfWork.CommitAsync();
-
-            return response;
-        }
-
-        public async Task<ErrorResponse> CloseTournament(int tournamentId, int userId)
-        {
-            var response = new ErrorResponse();
-            var tournament = await UnitOfWork.Tournaments.GetByIdAsync(tournamentId);
-            var matches = await UnitOfWork.TournamentMatches.GetTournamentMatches(tournamentId);
-            var canClose = matches.Any(x => x.Result == null) == false;
-
-            if (tournament.UserId != userId)
-            {
-                response.Errors.Add(new ErrorModel
-                {
-                    Error = "Only tournament organizer can proceed to eliminations"
+                    Error = ErrorMessages.ActionAlreadyExecuted
                 });
 
                 return response;
             }
 
-            if (canClose == false)
+            if (tournament.TournamentTypeId != (int)TournamentTypes.Classic)
             {
                 response.Errors.Add(new ErrorModel
                 {
-                    Error = "Tournament can not be finished, because not all matches are finished"
+                    Error = ErrorMessages.OnlyClassicCanProceed
+                });
+
+                return response;
+            }
+
+            if (tournament.UserId != userId)
+            {
+                response.Errors.Add(new ErrorModel
+                {
+                    Error = ErrorMessages.OrganizerOnly
                 });
 
                 return response;
@@ -231,7 +227,72 @@ namespace Services
             {
                 response.Errors.Add(new ErrorModel
                 {
-                    Error = "Tournament has already finished"
+                    Error = ErrorMessages.TournamentHasFinished
+                });
+
+                return response;
+            }
+
+            var participants = await UnitOfWork.TournamentParticipants.GetTournamentParticipants(tournamentId);
+            var eliminationsParticipants = ProceedToEliminations(participants, tournament);
+            var matches = await UnitOfWork.TournamentMatches.GetTournamentMatches(tournamentId);
+            var eliminationMatches = matches.Where(x => x.IsEliminationMatch).ToList();
+
+            var tournamentMatches = UpdateMatchesParticipants(eliminationsParticipants, eliminationMatches);
+
+            tournament.EliminationPhaseStarted = true;
+            
+            UnitOfWork.Tournaments.Update(tournament);
+            UnitOfWork.TournamentMatches.Update(tournamentMatches);
+            await UnitOfWork.CommitAsync();
+
+            var matchesOutput = Mapper.Map<List<TournamentMatchOutputDto>>(matches);
+
+            response.Matches = TournamentMatchHelper.GroupMatches(TournamentMatchHelper.UpdateMatchesCanEdit(matchesOutput, tournament));
+
+            return response;
+        }
+
+        public async Task<CloseTournamentModel> CloseTournament(int tournamentId, int userId)
+        {
+            var response = new CloseTournamentModel
+            {
+                Errors = new List<ErrorModel>()
+            };
+            var tournament = (await UnitOfWork.Tournaments.GetTournamentQueryable(tournamentId)
+                .Where(x => x.Active)
+                .Include(x => x.TournamentParticipants)
+                .Include(x => x.TournamentMatches)
+                    .ThenInclude(tm => tm.TournamentMatchTeams) 
+                .ToListAsync()).First();
+            var matches = tournament.TournamentMatches;
+            var canClose = matches.Any(x => x.Result == null) == false;
+
+            if (tournament.UserId != userId)
+            {
+                response.Errors.Add(new ErrorModel
+                {
+                    Error = ErrorMessages.OrganizerOnly
+                });
+
+                return response;
+            }
+
+            if (canClose == false)
+            {
+                response.Errors.Add(new ErrorModel
+                {
+                    Error = ErrorMessages.NotAllMatchesAreFinished
+                });
+
+                return response;
+            }
+
+            if (tournament.HasFinished)
+            {
+                response.Errors.Add(new ErrorModel
+                {
+                    Error = ErrorMessages.TournamentHasFinished
                 });
                 
                 return response;
@@ -239,14 +300,24 @@ namespace Services
 
             tournament.HasFinished = true;
 
-            return null;
+            var factory = new CloseTournamentFactory(tournament);
+            var placements = factory.CloseTournament();
+
+            UnitOfWork.TournamentPlacements.Update(placements);
+            await UnitOfWork.CommitAsync();
+
+            var tournamentOutput = Mapper.Map<TournamentOutputDto>(tournament);
+
+            response.Tournament = tournamentOutput;
+
+            return response;
         }
 
         private List<TournamentMatch> UpdateMatchesParticipants(
             List<TournamentParticipant> participants,
             List<TournamentMatch> matches)
         {
-            var orderedParticipants = OrderParticipants(participants);
+            var orderedParticipants = TournamentParticipantsHelper.OrderParticipants(participants);
             var orderedMatches = matches.OrderBy(x => x.Round);
             var numberOfMatches = orderedParticipants.Count / 2;
 
@@ -274,7 +345,7 @@ namespace Services
         {
             var groupedTeams = tournamentParticipants.GroupBy(x => x.Group);
             var orderedTeams = groupedTeams
-                .Select(x => OrderParticipants(x.ToList()));
+                .Select(x => TournamentParticipantsHelper.OrderParticipants(x.ToList()));
             var nextPowOfTwo = NextPowOfTwo(groupedTeams.Count() * tournament.TeamsAdvancingAfterGroups);
             var advancingTeams = new List<TournamentParticipant>();
             var bestNextCount = nextPowOfTwo - groupedTeams.Count() * tournament.TeamsAdvancingAfterGroups;
@@ -291,14 +362,13 @@ namespace Services
                     .Select(x => x.ToList()
                     .ElementAt(tournament.TeamsAdvancingAfterGroups)
                     ).ToList();
-                var bestNextTeams = OrderParticipants(candidatesForElimination).GetRange(0, bestNextCount);
+                var bestNextTeams = TournamentParticipantsHelper.OrderParticipants(candidatesForElimination).GetRange(0, bestNextCount);
 
                 advancingTeams.AddRange(bestNextTeams);
             }
 
             return advancingTeams;
         }
-
         private int NextPowOfTwo(int x)
         {
             var result = 2;
@@ -309,15 +379,6 @@ namespace Services
             }
 
             return result;
-        }
-
-        private List<TournamentParticipant> OrderParticipants(List<TournamentParticipant> participants)
-        {
-            return participants.OrderByDescending(x => x.Points)
-                    .ThenByDescending(x => x.GoalDifference)
-                    .ThenBy(x => x.Goals)
-                    .ThenBy(x => x.Wins)
-                    .ToList();
         }
     }
 }

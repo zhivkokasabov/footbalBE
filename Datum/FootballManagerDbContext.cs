@@ -17,6 +17,7 @@ namespace Datum
         public DbSet<TournamentMatch> TournamentMatches { get; set; }
         public DbSet<TournamentMatchTeam> TournamentMatchTeams { get; set; }
         public DbSet<Team> Teams { get; set; }
+        public DbSet<TournamentPlacement> TournamentPlacements { get; set; }
 
         public FootballManagerDbContext(DbContextOptions<FootballManagerDbContext> options)
             : base (options)
@@ -34,6 +35,7 @@ namespace Datum
             builder.ApplyConfiguration(new UserConfiguration());
             builder.ApplyConfiguration(new UserPositionConfiguration());
             builder.ApplyConfiguration(new UserRoleConfiguration());
+            builder.ApplyConfiguration(new TournamentPlacementConfiguration());
 
             base.OnModelCreating(builder);
         }

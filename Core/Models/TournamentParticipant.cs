@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Core.Models
 {
@@ -18,6 +19,7 @@ namespace Core.Models
 
         public int TournamentId { get; set; }
         public Tournament Tournament { get; set; }
+        [DebuggerDisplay("TeamId = {TeamId}")]
         public int? TeamId { get; set; }
         public Team Team { get; set; }
     }

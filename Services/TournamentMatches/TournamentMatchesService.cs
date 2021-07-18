@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Core.Contracts.Request.Tournaments;
 using Core.Contracts.Response.Tournaments;
+using Core.Enums;
 using Core.InternalObjects;
 using Core.Models;
 using Core.Repositories;
@@ -59,6 +60,13 @@ namespace Services.TournamentMatches
                     TournamentParticipants = x.TournamentParticipants.ToList()
                 }).FirstOrDefaultAsync();
 
+            var match = tournament.TournamentMatches.Find(x => x.TournamentMatchId == matchId);
+
+            if (match.IsEliminationMatch && tournament.TournamentTypeId == (int)TournamentTypes.Classic)
+            {
+                tournament.TournamentTypeId = (int)TournamentTypes.Elimination;
+            }
+
             var tournamentMatchBuilder = new MatchFactoryBuilder(
                 tournament,
                 result,
@@ -82,7 +90,7 @@ namespace Services.TournamentMatches
             await UnitOfWork.CommitAsync();
 
             var matchesOutput = Mapper.Map<List<TournamentMatchOutputDto>>(tournamentMatchBuilder.Matches);
-            var groupedMatches = TournamentMatchHelper.GroupMatches(matchesOutput);
+            var groupedMatches = TournamentMatchHelper.GroupMatches(TournamentMatchHelper.UpdateMatchesCanEdit(matchesOutput, tournament));
 
             return new UpsertTournamentMatchModel
             {

@@ -72,6 +72,21 @@ namespace Datum.Repositories
                 .ToListAsync();
         }
 
+        public async Task<List<TournamentPlacement>> GetTeamPlacements(int teamId)
+        {
+            return await DbContext.TournamentPlacements
+                .Where(x => x.TeamId == teamId)
+                .Select(x => new TournamentPlacement
+                {
+                    Placement = x.Placement,
+                    Tournament = new Tournament
+                    {
+                        StartDate = x.Tournament.StartDate,
+                        Name = x.Tournament.Name
+                    }
+                }).ToListAsync();
+        }
+
         public async Task<Team> GetUserTeam(int userId)
         {
             return await DbContext.Teams

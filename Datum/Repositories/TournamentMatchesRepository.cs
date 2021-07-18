@@ -29,6 +29,7 @@ namespace Datum.Repositories
                 .Where(x => x.TournamentId == tournamentId)
                 .Select(x => new TournamentMatch
                 {
+                    TournamentId = x.TournamentId,
                     TournamentMatchId = x.TournamentMatchId,
                     AwayTeamSequenceId = x.AwayTeamSequenceId,
                     HomeTeamSequenceId = x.HomeTeamSequenceId,
@@ -47,7 +48,8 @@ namespace Datum.Repositories
                                 {
                                     Name = tmt.Team.Name,
                                     TeamId = tmt.TeamId
-                                }
+                                },
+                                TeamId = tmt.TeamId
                             }).ToList() : new List<TournamentMatchTeam>()
                 })
                 .ToListAsync();
@@ -65,10 +67,17 @@ namespace Datum.Repositories
             {
                 x.TournamentMatchTeams.ForEach(y =>
                 {
-                    var teamId = y.TeamId;
-                    var entry = DbContext.Entry(y);
-                    entry.State = EntityState.Modified;
-                    entry.Entity.TeamId = teamId;
+                    if (y.TournamentMatchTeamId != 0)
+                    {
+                        var teamId = y.TeamId;
+                        var entry = DbContext.Entry(y);
+                        entry.State = EntityState.Modified;
+                        entry.Entity.TeamId = teamId;
+                    }
+                    else
+                    {
+                        DbContext.Add(y);
+                    }
                 });
             });
 

@@ -77,6 +77,15 @@ namespace Api.Controllers
             return Ok(mapped.GroupBy(x => x.StartTime));
         }
 
+        [HttpGet("{teamId}/placements")]
+        [Authorize]
+        public async Task<ActionResult<List<TournamentPlacementOutputDto>>> GetTeamPlacements(int teamId)
+        {
+            var placements = await TeamsService.GetTeamPlacements(teamId);
+
+            return Ok(placements);
+        }
+
         [HttpPost("{entryKey}/join")]
         [Authorize]
         public async Task<ActionResult<TeamOutputDto>> AddUserToTeam(string entryKey)

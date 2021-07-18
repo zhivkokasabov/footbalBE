@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Core.contracts.response;
 using Core.Contracts.Request;
 using Core.Contracts.Response;
 using Core.Contracts.Response.Users;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Api.Controllers
@@ -32,6 +34,25 @@ namespace Api.Controllers
         public async Task<ActionResult<UserOutputDto>> GetUser()
         {
             return Ok(await UserService.GetUser(HttpContext.User.Identity.Name));
+        }
+
+        [HttpPut("profile")]
+        [Authorize]
+        public async Task<ActionResult<UserOutputDto>> UpdateUser(UserDto user)
+        {
+            var response = await UserService.UpdateUser(user);
+
+            if (response.Errors.Any())
+            {
+                return BadRequest(new ErrorResponse
+                {
+                    Errors = response.Errors
+                });
+            }
+
+            var userDto = Mapper.Map<User, UserOutputDto>(response.User);
+
+            return Ok(userDto);
         }
 
         [HttpPost("")]

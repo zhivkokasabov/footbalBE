@@ -3,6 +3,7 @@ using Core.Models;
 using Core.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -58,9 +59,16 @@ namespace Datum.Repositories
             return user;
         }
 
+
+
         public async Task<User> GetUserAsync(int userId)
         {
             return await DbContext.Users.FindAsync(userId);
+        }
+
+        public async Task<List<UserPosition>> GetUserPositionsAsync(int userId)
+        {
+            return await DbContext.UserPositions.Where(x => x.Active && x.UserId == userId).ToListAsync();
         }
     }
 }

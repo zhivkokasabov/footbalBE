@@ -25,6 +25,7 @@ namespace Core.contracts.Response
         public bool CanEdit { get; set; }
         public bool CanEditMatches { get; set; }
         public bool EliminationPhaseStarted { get; set; }
+        public bool HasFinished { get; set; }
         public List<TournamentMatchOutputDto> TournamentMatches { get; set; } = new List<TournamentMatchOutputDto>();
         public List<TournamentParticipantOutputDto> TournamentParticipants { get; set; } = new List<TournamentParticipantOutputDto>();
     }

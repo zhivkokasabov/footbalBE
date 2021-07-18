@@ -70,6 +70,20 @@ namespace Services
             return await UnitOfWork.Teams.GetTeamMatches(teamId);
         }
 
+        public async Task<List<TournamentPlacementOutputDto>> GetTeamPlacements(int teamId)
+        {
+            var placements = await UnitOfWork.Teams.GetTeamPlacements(teamId);
+
+            return placements.Select(x => new TournamentPlacementOutputDto
+            {
+                StartDate = x.Tournament.StartDate,
+                Placement = x.Placement,
+                TournamentName = x.Tournament.Name
+            })
+            .OrderByDescending(x => x.StartDate)
+            .ToList();
+        }
+
         private string CreateRandomString()
         {
             var stringLength = 8;

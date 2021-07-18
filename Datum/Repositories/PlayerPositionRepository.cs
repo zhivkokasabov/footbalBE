@@ -16,10 +16,5 @@ namespace Datum.Repositories
         {
             return await DbContext.PlayerPositions.ToListAsync();
         }
-
-        private FootballManagerDbContext DbContext
-        {
-            get { return Context as FootballManagerDbContext; }
-        }
     }
 }

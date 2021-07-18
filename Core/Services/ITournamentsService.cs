@@ -1,6 +1,7 @@
 ﻿using Core.contracts.response;
 using Core.contracts.Response;
 using Core.Contracts.Response.Tournaments;
+using Core.InternalObjects;
 using Core.Models;
 using System;
 using System.Collections.Generic;
@@ -18,9 +19,9 @@ namespace Core.Services
         Task<List<TournamentParticipant>> GetTournamentParticipants(int tournamentId);
         Task<bool> GetUserIsAllowedToParticipate(int tournamentId, int userId);
         Task<List<ErrorModel>> JoinTournament(int tournamentId, int userId);
-        Task<IEnumerable<IGrouping<int, TournamentMatchOutputDto>>> GetTournamentMatches(int tournamentId);
+        Task<IEnumerable<IGrouping<int, TournamentMatchOutputDto>>> GetTournamentMatches(int tournamentId, int userId);
         Task<bool> GetCanProceedToEliminations(int tournamentId, int userId);
-        Task<ErrorResponse> ProceedToEliminations(int tournamentId, int userId);
-        Task<ErrorResponse> CloseTournament(int tournamentId, int userId);
+        Task<ProceedToEliminationsModel> ProceedToEliminations(int tournamentId, int userId);
+        Task<CloseTournamentModel> CloseTournament(int tournamentId, int userId);
     }
 }

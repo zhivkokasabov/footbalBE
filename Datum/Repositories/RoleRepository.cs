@@ -27,10 +27,5 @@ namespace Datum.Repositories
                 })
                 .ToListAsync();
         }
-
-        private FootballManagerDbContext DbContext
-        {
-            get { return Context as FootballManagerDbContext; }
-        }
     }
 }

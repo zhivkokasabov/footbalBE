@@ -79,7 +79,7 @@ namespace Api.controllers
         [HttpGet("{tournamentId}/matches")]
         public async Task<ActionResult<IEnumerable<IGrouping<int, TournamentMatchOutputDto>>>> GetTournamentMatches(int tournamentId)
         {
-            var matches = await TournamentService.GetTournamentMatches(tournamentId);
+            var matches = await TournamentService.GetTournamentMatches(tournamentId, userId);
 
             return Ok(matches);
         }
@@ -125,24 +125,35 @@ namespace Api.controllers
         }
 
         [HttpPost("{tournamentId}/proceed-to-eliminations")]
-        public async Task<ActionResult<ErrorResponse>> ProceedToEliminations(int tournamentId)
+        public async Task<ActionResult<IEnumerable<IGrouping<int, TournamentMatchOutputDto>>>> ProceedToEliminations(int tournamentId)
         {
             var response = await TournamentService.ProceedToEliminations(tournamentId, userId);
 
             if (response.Errors.Any())
             {
-                return BadRequest(response);
+                return BadRequest(new ErrorResponse
+                {
+                    Errors = response.Errors
+                });
             }
 
-            return Ok();
+            return Ok(response.Matches);
         }
 
         [HttpPut("{tournamentId}/close")]
-        public async Task<ActionResult<ErrorResponse>> CloseTournament(int tournamentId)
+        public async Task<ActionResult<TournamentOutputDto>> CloseTournament(int tournamentId)
         {
-            await TournamentService.CloseTournament(tournamentId, userId);
+            var response = await TournamentService.CloseTournament(tournamentId, userId);
 
-            return Ok();
+            if (response.Errors.Any())
+            {
+                return BadRequest(new ErrorResponse
+                {
+                    Errors = response.Errors
+                });
+            }
+
+            return Ok(response.Tournament);
         }
     }
 }

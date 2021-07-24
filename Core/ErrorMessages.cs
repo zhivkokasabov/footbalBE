@@ -11,5 +11,6 @@
         public const string ActionAlreadyExecuted = "Action has already been executed";
 
         public const string TeamDoesNotExist = "Team does not exist";
+        public const string OnlyTeamCaptain = "Only the team captain can execute this action";
     }
 }

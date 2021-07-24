@@ -2,12 +2,14 @@
 using Core;
 using Core.contracts.response;
 using Core.contracts.Response;
+using Core.Contracts.Response;
 using Core.Contracts.Response.Tournaments;
 using Core.Enums;
 using Core.InternalObjects;
 using Core.Models;
 using Core.Repositories;
 using Core.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Services.Helpers;
 using Services.Tournaments.Factories;
@@ -22,11 +24,13 @@ namespace Services
     {
         private readonly IUnitOfWork UnitOfWork;
         private readonly IMapper Mapper;
+        private readonly UserManager<User> UserManager;
 
-        public TournamentService(IUnitOfWork unitOfWork, IMapper mapper)
+        public TournamentService(IUnitOfWork unitOfWork, IMapper mapper, UserManager<User> userManager)
         {
             UnitOfWork = unitOfWork;
             Mapper = mapper;
+            UserManager = userManager;
         }
 
         public async Task<Tournament> CreateTournament(Tournament tournament, int userId)
@@ -53,9 +57,26 @@ namespace Services
             return await UnitOfWork.Tournaments.GetTournamentWithUserParticipation(userId);
         }
 
-        public async Task<List<Tournament>> GetAllTournaments(int pageSize, int page)
+        public async Task<PagedResult<TournamentOutputDto>> GetAllTournaments(int pageSize, int page)
         {
-            return await UnitOfWork.Tournaments.GetAllTournamentsAsync(pageSize, page);
+            var tournaments = await UnitOfWork.Tournaments.GetAllTournamentsAsync(page, pageSize);
+            var count = await UnitOfWork.Tournaments
+                .GetTournamentQueryable()
+                .Where(x => x.Active && x.TournamentAccessId != (int)Core.Enums.TournamentAccess.Private)
+                .CountAsync();
+
+            var tournamentListOutput = Mapper.Map<List<TournamentOutputDto>>(tournaments);
+
+            return new PagedResult<TournamentOutputDto>
+            {
+                Items = tournamentListOutput,
+                Meta = new Meta
+                {
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalCount = count
+                }
+            };
         }
 
         public async Task<TournamentOutputDto> GetTournamentById(int tournamentId, int userId)
@@ -115,37 +136,37 @@ namespace Services
                 return errors;
             }
 
-            if (tournament.TournamentAccessId == (int)Core.Enums.TournamentAccess.Public)
-            {
-                var participant = await UnitOfWork.TournamentParticipants.FindUnassignedParticipant(tournamentId);
-
-                if (participant == null)
-                {
-                    errors.Add(new ErrorModel { Error = ErrorMessages.NoAvailableSlots });
-                    return errors;
-                }
-
-                var matches = await UnitOfWork.Tournaments.GetTournamentMatchesBySequenceId(participant.SequenceId, tournamentId);
-                participant.TeamId = team.TeamId;
-
-                foreach (var match in matches)
-                {
-                    var isHomeTeam = match.HomeTeamSequenceId == participant.SequenceId;
-
-                    match.TournamentMatchTeams.Add(
-                        new TournamentMatchTeam { 
-                            IsHomeTeam = isHomeTeam,
-                            TeamId = team.TeamId,
-                        });
-                }
-
-                await UnitOfWork.CommitAsync();
-            }
-            else
+            if (tournament.TournamentAccessId != (int)Core.Enums.TournamentAccess.Public)
             {
                 errors.Add(new ErrorModel { Error = ErrorMessages.RestrictedAccess });
                 return errors;
             }
+
+            var participant = await UnitOfWork.TournamentParticipants.FindUnassignedParticipant(tournamentId);
+
+            if (participant == null)
+            {
+                errors.Add(new ErrorModel { Error = ErrorMessages.NoAvailableSlots });
+                return errors;
+            }
+
+            participant.TeamId = team.TeamId;
+
+            var matches = await UnitOfWork.Tournaments.GetTournamentMatchesBySequenceId(participant.SequenceId, tournamentId);
+
+            foreach (var match in matches)
+            {
+                var isHomeTeam = match.HomeTeamSequenceId == participant.SequenceId;
+
+                match.TournamentMatchTeams.Add(
+                    new TournamentMatchTeam
+                    {
+                        IsHomeTeam = isHomeTeam,
+                        TeamId = team.TeamId,
+                    });
+            }
+
+            await UnitOfWork.CommitAsync();
 
             return errors;
         }
@@ -253,6 +274,48 @@ namespace Services
             return response;
         }
 
+        public async Task<List<ErrorModel>> RequestToJoinTournament(Notification notification, int tournamentId, int userId)
+        {
+            var errorModel = new List<ErrorModel>();
+            var user = await UserManager.FindByIdAsync(userId.ToString());
+            var userTeam = await UnitOfWork.Teams.GetUserTeam(userId);
+            var tournament = await UnitOfWork.Tournaments.GetByIdAsync(tournamentId);
+            var enrolledTeams = await UnitOfWork.TournamentParticipants.GetNumberOfEnrolledTeams(tournamentId);
+
+            if (user.IsTeamCaptain == false)
+            {
+                errorModel.Add(new ErrorModel { Error = ErrorMessages.OnlyTeamCaptain });
+            }
+
+            if (userTeam == null)
+            {
+                errorModel.Add(new ErrorModel { Error = ErrorMessages.TeamDoesNotExist });
+            }
+
+            if (tournament.TournamentAccessId != (int)Core.Enums.TournamentAccess.Protected)
+            {
+                errorModel.Add(new ErrorModel { Error = ErrorMessages.RestrictedAccess });
+            }
+
+            if (tournament.TeamsCount == enrolledTeams)
+            {
+                errorModel.Add(new ErrorModel { Error = ErrorMessages.NoAvailableSlots });
+            }
+
+            notification.Pending = true;
+            notification.Accepted = false;
+            notification.Rejected = false;
+            notification.ReceiverId = tournament.UserId;
+            notification.SenderId = userId;
+            notification.RedirectUrl = notification.RedirectUrl.Replace(":teamId:", userTeam.TeamId.ToString());
+            notification.NotificationTypeId = (int)NotificationTypes.RequestToJoinTournament;
+            notification.Message = $"<a href='{notification.RedirectUrl}'>{userTeam.Name }</a> wants to join your tournament";
+
+            await UnitOfWork.Notifications.AddAsync(notification);
+            await UnitOfWork.CommitAsync();
+
+            return errorModel;
+        }
         public async Task<CloseTournamentModel> CloseTournament(int tournamentId, int userId)
         {
             var response = new CloseTournamentModel

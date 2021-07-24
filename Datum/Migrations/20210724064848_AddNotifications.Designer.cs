@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Datum.Migrations
 {
     [DbContext(typeof(FootballManagerDbContext))]
-    [Migration("20210718133244_AddFilterToUserPositionsIndex")]
-    partial class AddFilterToUserPositionsIndex
+    [Migration("20210724064848_AddNotifications")]
+    partial class AddNotifications
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -20,6 +20,64 @@ namespace Datum.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
                 .HasAnnotation("ProductVersion", "5.0.5")
                 .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+            modelBuilder.Entity("Core.Models.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+                    b.Property<bool>("Accepted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("NotificationTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Pending")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ReceiverId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RedirectUrl")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<bool>("Rejected")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("SenderId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NotificationTypeId");
+
+                    b.HasIndex("SenderId");
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("Core.Models.NotificationType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("NotificationType");
+                });
 
             modelBuilder.Entity("Core.Models.PlayerPosition", b =>
                 {
@@ -34,7 +92,7 @@ namespace Datum.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PlayerPositions");
+                    b.ToTable("PlayerPosition");
                 });
 
             modelBuilder.Entity("Core.Models.PlayingDays", b =>
@@ -487,7 +545,7 @@ namespace Datum.Migrations
                     b.HasIndex("PlayerPositionId");
 
                     b.HasIndex("UserId", "PlayerPositionId")
-                        .HasFilter("Active = true");
+                        .HasFilter("Active = 1");
 
                     b.ToTable("UserPositions");
                 });
@@ -614,6 +672,25 @@ namespace Datum.Migrations
                     b.HasIndex("UserId1");
 
                     b.HasDiscriminator().HasValue("UserRole");
+                });
+
+            modelBuilder.Entity("Core.Models.Notification", b =>
+                {
+                    b.HasOne("Core.Models.NotificationType", "NotificationType")
+                        .WithMany()
+                        .HasForeignKey("NotificationTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Models.User", "Sender")
+                        .WithMany("Notifications")
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("NotificationType");
+
+                    b.Navigation("Sender");
                 });
 
             modelBuilder.Entity("Core.Models.Tournament", b =>
@@ -844,6 +921,8 @@ namespace Datum.Migrations
 
             modelBuilder.Entity("Core.Models.User", b =>
                 {
+                    b.Navigation("Notifications");
+
                     b.Navigation("UserPositions");
 
                     b.Navigation("UserRoles");

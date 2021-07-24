@@ -13,6 +13,7 @@ namespace Core.Repositories
         Task<TEntity> FirstOrDefaultAsync(Expression<Func<TEntity, bool>> predicate);
         Task AddAsync(TEntity entity);
         Task AddRangeAsync(IEnumerable<TEntity> entities);
+        Task<int> CountAsync();
         void Update(TEntity entity);
         void Update(List<TEntity> entities);
     }

@@ -57,6 +57,11 @@ namespace Datum.Repositories
             return Context.Set<TEntity>().FirstOrDefaultAsync(predicate);
         }
 
+        public Task<int> CountAsync()
+        {
+            return Context.Set<TEntity>().CountAsync();
+        }
+
         protected FootballManagerDbContext DbContext
         {
             get { return Context as FootballManagerDbContext; }

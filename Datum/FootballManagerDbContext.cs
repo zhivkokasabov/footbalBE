@@ -18,6 +18,8 @@ namespace Datum
         public DbSet<TournamentMatchTeam> TournamentMatchTeams { get; set; }
         public DbSet<Team> Teams { get; set; }
         public DbSet<TournamentPlacement> TournamentPlacements { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<NotificationType> NotificationTypes { get; set; }
 
         public FootballManagerDbContext(DbContextOptions<FootballManagerDbContext> options)
             : base (options)
@@ -36,6 +38,8 @@ namespace Datum
             builder.ApplyConfiguration(new UserPositionConfiguration());
             builder.ApplyConfiguration(new UserRoleConfiguration());
             builder.ApplyConfiguration(new TournamentPlacementConfiguration());
+            builder.ApplyConfiguration(new NotificationConfiguration());
+            builder.ApplyConfiguration(new NotificationTypeCofiguration());
 
             base.OnModelCreating(builder);
         }

@@ -14,7 +14,7 @@ namespace Datum.Configurations
         public void Configure(EntityTypeBuilder<UserPosition> builder)
         {
             builder.HasIndex(x => new { x.UserId, x.PlayerPositionId })
-                .HasFilter("Active = true");
+                .HasFilter("Active = 1");
 
             builder.HasOne(x => x.User)
                 .WithMany(u => u.UserPositions)

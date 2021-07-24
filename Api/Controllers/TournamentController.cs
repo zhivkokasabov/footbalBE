@@ -14,6 +14,7 @@ using Core.Contracts.Response.Tournaments;
 using System.Linq;
 using Core.contracts.response;
 using Core.Contracts.Request.Tournaments;
+using Core.Contracts.Response;
 
 namespace Api.controllers
 {
@@ -48,11 +49,11 @@ namespace Api.controllers
         }
 
         [HttpGet("")]
-        public async Task<ActionResult<List<TournamentOutputDto>>> GetAllTournaments([FromQuery] int pageSize, int page)
+        public async Task<ActionResult<PagedResult<TournamentOutputDto>>> GetAllTournaments([FromQuery] int page, int pageSize)
         {
-            var tournamentsList = await TournamentService.GetAllTournaments(pageSize, page);
+            var pagedResult = await TournamentService.GetAllTournaments(pageSize, page);
 
-            return Ok(Mapper.Map<List<TournamentOutputDto>>(tournamentsList));
+            return Ok(pagedResult);
         }
 
         [HttpGet("{tournamentId}")]
@@ -93,9 +94,25 @@ namespace Api.controllers
         }
 
         [HttpPut("{tournamentId}/join-tournament")]
-        public async Task<ActionResult<List<Tournament>>> GetUserTournaments(int tournamentId)
+        public async Task<ActionResult<List<Tournament>>> JoinTournament(int tournamentId)
         {
             var errorsList = await TournamentService.JoinTournament(tournamentId, userId);
+
+            if (errorsList.Any())
+            {
+                return BadRequest(new ErrorResponse
+                {
+                    Errors = errorsList
+                });
+            }
+
+            return Ok();
+        }
+
+        [HttpPost("{tournamentId}/request-to-join-tournament")]
+        public async Task<ActionResult<List<Tournament>>> RequestToJoinTournament([FromBody] Notification notification, int tournamentId)
+        {
+            var errorsList = await TournamentService.RequestToJoinTournament(notification, tournamentId, userId);
 
             if (errorsList.Any())
             {
@@ -142,6 +159,22 @@ namespace Api.controllers
 
         [HttpPut("{tournamentId}/close")]
         public async Task<ActionResult<TournamentOutputDto>> CloseTournament(int tournamentId)
+        {
+            var response = await TournamentService.CloseTournament(tournamentId, userId);
+
+            if (response.Errors.Any())
+            {
+                return BadRequest(new ErrorResponse
+                {
+                    Errors = response.Errors
+                });
+            }
+
+            return Ok(response.Tournament);
+        }
+
+        [HttpPut("{tournamentId}/request-to-join/{teamId}")]
+        public async Task<ActionResult<TournamentOutputDto>> RequestToJoinTournament(int tournamentId, int teamId)
         {
             var response = await TournamentService.CloseTournament(tournamentId, userId);
 

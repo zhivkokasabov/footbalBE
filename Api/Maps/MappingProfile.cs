@@ -44,7 +44,10 @@ public class MappingProfile : Profile
         CreateMap<User, UserOutputDto>()
             .ForMember(
                 x => x.Positions,
-                opt => opt.MapFrom(src => src.UserPositions.Select(x => x.PlayerPosition)))
+                opt => opt.MapFrom(src => src.UserPositions.Select(x => new PlayerPosition {
+                    Position = x.PlayerPosition.Position,
+                    Id = x.PlayerPosition.Id
+                })))
             .ForMember(
                 x => x.Roles,
                 opt => opt.MapFrom(src => src.UserRoles.Select(x => x.Role)));

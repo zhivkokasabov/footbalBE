@@ -8,5 +8,6 @@ namespace Core.Repositories
     {
         Task<List<TournamentParticipant>> GetTournamentParticipants(int tournamentId);
         Task<TournamentParticipant> FindUnassignedParticipant(int tournamentId);
+        Task<int> GetNumberOfEnrolledTeams(int tournamentId);
     }
 }

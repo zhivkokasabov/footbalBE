@@ -20,6 +20,7 @@ namespace Datum
         private TournamentMatchesRepository TournamentMatchesRepository;
         private TeamsRepository TeamsRepository;
         private TournamentPlacementRepository TournamentPlacementRepository;
+        private NotificationRepository NotificationRepository;
 
         public UnitOfWork(FootballManagerDbContext context)
         {
@@ -55,6 +56,9 @@ namespace Datum
 
         public ITournamentPlacementRepository TournamentPlacements
             => TournamentPlacementRepository = TournamentPlacementRepository ?? new TournamentPlacementRepository(Context);
+
+        public INotificationRepository Notifications
+    => NotificationRepository = NotificationRepository ?? new NotificationRepository(Context);
 
         public async Task<int> CommitAsync()
         {

@@ -19,6 +19,13 @@ namespace Datum.Repositories
                 .FirstOrDefaultAsync(x => x.TeamId == null && x.TournamentId == tournamentId);
         }
 
+        public async Task<int> GetNumberOfEnrolledTeams(int tournamentId)
+        {
+            return await DbContext.TournamentParticipants
+                .Where(x => x.TournamentId == tournamentId && x.TeamId != null)
+                .CountAsync();
+        }
+
         public async Task<List<TournamentParticipant>> GetTournamentParticipants(int tournamentId)
         {
             return await DbContext.TournamentParticipants

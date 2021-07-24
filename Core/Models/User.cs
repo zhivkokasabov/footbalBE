@@ -14,6 +14,7 @@ namespace Core.Models
         public List<UserPosition> UserPositions { get; set; }
         public Team Team { get; set; }
         public int? TeamId { get; set; }
+        public List<Notification> Notifications { get; set; }
         public bool IsTeamCaptain { get; set; }
         public virtual ICollection<UserRole> UserRoles { get; set; }
     }

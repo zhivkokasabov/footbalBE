@@ -15,6 +15,7 @@ namespace Core.Repositories
         ITournamentMatchesRepository TournamentMatches { get; }
         ITeamsRepository Teams { get; }
         ITournamentPlacementRepository TournamentPlacements { get; }
+        INotificationRepository Notifications { get; }
         Task<int> CommitAsync();
     }
 }

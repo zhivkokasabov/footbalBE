@@ -29,7 +29,7 @@ namespace Datum.Repositories
         public async Task<List<Tournament>> GetAllTournamentsAsync(int page, int pageSize)
         {
             return await DbContext.Tournaments
-                .Where(x => x.Active && x.TournamentAccessId == (int)Core.Enums.TournamentAccess.Public)
+                .Where(x => x.Active && x.TournamentAccessId != (int)Core.Enums.TournamentAccess.Private)
                 .Select(x => new Tournament
                 {
                     TournamentId = x.TournamentId,

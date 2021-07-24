@@ -174,6 +174,7 @@ namespace Services
         {
             var response = new UpdateProfileModel();
             var user = await UserManager.FindByEmailAsync(userDto.Email);
+            var roles = await UserManager.GetRolesAsync(user);
             var passwordIsCorrect = await UserManager.CheckPasswordAsync(user, userDto.Password);
 
             if (!passwordIsCorrect)
@@ -183,21 +184,38 @@ namespace Services
                 return response;
             }
 
+            var positions = await UnitOfWork.Users.GetUserPositionsAsync(user.Id);
+
+            positions.ForEach(x =>
+            {
+                x.Active = true;
+            });
+
+            var newPositions = userDto.Positions.Select(x => new UserPosition
+            {
+                PlayerPositionId = x.Id,
+                PlayerPosition = x
+            })
+            .ToList();
+
             user.FirstName = userDto.FirstName;
             user.LastName = userDto.LastName;
             user.Nickname = userDto.Nickname;
-            user.UserPositions = userDto.Positions.Select(x => new UserPosition
-            {
-                Active = true,
-                PlayerPositionId = x.Id
-            }).ToList();
-
-            var positions = await UnitOfWork.Users.GetUserPositionsAsync(user.Id);
-
-            positions.ForEach(x => x.Active = false);
+            user.UserPositions = newPositions;
 
             await UserManager.UpdateAsync(user);
             await UnitOfWork.CommitAsync();
+
+            user.UserRoles = new List<UserRole>
+                {
+                    new UserRole
+                    {
+                        Role = new Role
+                        {
+                            Name = roles.First()
+                        }
+                    }
+                };
 
             response.User = user;
 
